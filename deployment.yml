@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx
+  namespace: nginx
   labels:
     app: nginx
 spec:
@@ -14,11 +15,24 @@ spec:
       labels:
         app: nginx
     spec:
+      initContainers:
+        - name: seed-content
+          image: nginx:1.27
+          command:
+            - sh
+            - -c
+            - '[ -f /data/index.html ] || cp /usr/share/nginx/html/* /data/'
+          volumeMounts:
+            - name: data
+              mountPath: /data
       containers:
         - name: nginx
           image: nginx:1.27
           ports:
             - containerPort: 80
+          volumeMounts:
+            - name: data
+              mountPath: /usr/share/nginx/html
           resources:
             requests:
               cpu: 50m
@@ -34,3 +48,7 @@ spec:
             httpGet:
               path: /
               port: 80
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: nginx-data
